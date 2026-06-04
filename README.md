@@ -329,8 +329,3 @@ This project is open-source and available for educational and development purpos
 - [React](https://react.dev) - UI framework
 - [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
 - [Lucide](https://lucide.dev) - Beautiful icons
-
-
-
-
-
