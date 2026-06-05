@@ -21,8 +21,8 @@ export function HistoryModal({ isOpen, onClose, history, onSelect, onClear }: Hi
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-3xl max-h-[80vh] rounded-2xl overflow-hidden glass-card">
-        <div className="p-6 border-b border-slate-700/50">
+      <div className="relative w-full max-w-3xl max-h-[80vh] rounded-2xl overflow-hidden glass-card flex flex-col">
+        <div className="p-6 border-b border-slate-700/50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-100">Query History</h2>
             <button
@@ -34,7 +34,7 @@ export function HistoryModal({ isOpen, onClose, history, onSelect, onClear }: Hi
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[60vh] p-6 space-y-3 scrollbar-thin">
+        <div className="overflow-y-auto flex-1 p-6 space-y-3 scrollbar-thin min-h-0">
           {reversedHistory.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -73,7 +73,7 @@ export function HistoryModal({ isOpen, onClose, history, onSelect, onClear }: Hi
         </div>
 
         {history.length > 0 && (
-          <div className="p-6 border-t border-slate-700/50">
+          <div className="p-6 border-t border-slate-700/50 flex-shrink-0">
             <button
               onClick={onClear}
               className="w-full px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 transition-all duration-200"
