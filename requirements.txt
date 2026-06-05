@@ -2,3 +2,5 @@ groq
 mysql-connector-python
 pandas
 streamlit
+flask
+flask-cors

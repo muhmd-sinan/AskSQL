@@ -1,94 +1,151 @@
 # QueryMind
 
-# Natural Language SQL Query Generator
+Natural Language SQL Query Generator with modern glassmorphism web interface.
 
-Convert natural language questions into SQL queries using Groq LLMs and execute them directly on a MySQL database through an interactive Streamlit interface.
+Convert natural language questions into SQL queries using Groq LLMs and execute them directly on a MySQL database through an interactive web interface.
+
+---
 
 ## Features
 
-* Natural Language → SQL conversion
-* Groq LLM integration
-* MySQL database support
-* Dynamic database connection from the UI
-* Dynamic Groq API key input from the UI
-* Automatic database schema extraction
-* Schema-aware query generation
-* Query validation against database schema
-* SQL query execution
-* Query history tracking
-* Export query results to CSV
-* Modular architecture with shared backend logic
-* No hardcoded database credentials
-* No hardcoded API keys
+- **Natural Language → SQL** - Ask questions in plain English
+- **Groq LLM Integration** - Fast inference with Groq API
+- **MySQL Support** - Connect to any MySQL database
+- **Modern UI** - React + Flask with glassmorphism design
+- **Schema Visualization** - Live database schema display
+- **Query History** - Track and revisit past queries
+- **CSV Export** - Export query results
+- **Dark Mode** - Professional dark theme
+- **No Hardcoded Secrets** - All credentials entered at runtime
 
 ---
 
 ## Project Structure
 
-```text
-project/
-│
-├── app.py              # Core application logic
-├── db.py               # Database utilities and schema generation
-├── ui.py               # Streamlit frontend
-├── requirements.txt
-├── README.md
-└── .gitignore
+```
+QueryMind/
+├── api.py                    # Flask REST API backend
+├── app.py                    # Groq LLM query generation
+├── db.py                     # Database utilities
+├── ui.py                     # Streamlit UI (alternative)
+├── start.bat                 # Windows startup script
+├── requirements.txt          # Python dependencies
+├── frontend/                 # React web application
+│   ├── package.json          # Node dependencies
+│   ├── vite.config.js       # Vite configuration
+│   ├── tailwind.config.js   # Tailwind CSS config
+│   ├── postcss.config.js    # PostCSS config
+│   ├── index.html           # Entry HTML
+│   └── src/
+│       ├── App.tsx          # Main application
+│       ├── index.css        # Global styles
+│       ├── components/      # UI components
+│       │   ├── GlassCard.tsx
+│       │   ├── Layout.tsx
+│       │   ├── SchemaGrid.tsx
+│       │   ├── QueryInput.tsx
+│       │   ├── ResultsTable.tsx
+│       │   └── HistoryModal.tsx
+│       ├── pages/           # Application pages
+│       │   ├── DatabaseConnect.tsx
+│       │   ├── APIConfig.tsx
+│       │   └── QueryInterface.tsx
+│       ├── services/        # API client
+│       │   └── api.ts
+│       └── utils/           # Utilities
+│           └── export.ts
+└── README.md
 ```
 
 ---
 
-## How It Works
+## Tech Stack
 
-1. Enter database credentials in the UI.
-2. Enter your Groq API key.
-3. Connect to the MySQL database.
-4. The application automatically extracts the database schema.
-5. Ask questions in plain English.
-6. Groq generates a SQL query based on the schema.
-7. The generated query is validated against the database structure.
-8. The query is executed.
-9. Results are displayed in the UI.
-10. Query history is stored and results can be exported to CSV.
+| Layer | Technology |
+|-------|------------|
+| Backend | Flask, Flask-CORS |
+| Database | MySQL |
+| LLM | Groq API |
+| Frontend | React 19, TypeScript |
+| Build | Vite |
+| Styling | Tailwind CSS 4 |
+| Icons | Lucide React |
+| Fonts | Inter, JetBrains Mono |
 
 ---
 
 ## Installation
 
-### Clone the Repository
+### Prerequisites
 
-```bash
-git clone https://github.com/<username>/<repository>.git
-cd <repository>
-```
+- Python 3.8+
+- Node.js 18+
+- MySQL database
+- Groq API key (free at [console.groq.com](https://console.groq.com))
 
-### Create a Virtual Environment
+### Setup
 
-```bash
-python -m venv venv
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/<username>/querymind.git
+   cd querymind
+   ```
 
-#### Windows
+2. **Create virtual environment**
+   ```bash
+   python -m venv venv
+   
+   # Windows
+   venv\Scripts\activate
+   
+   # Linux/macOS
+   source venv/bin/activate
+   ```
 
-```bash
-venv\Scripts\activate
-```
+3. **Install Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-#### Linux / macOS
-
-```bash
-source venv/bin/activate
-```
-
-### Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
+4. **Install Node.js dependencies**
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
 
 ---
 
 ## Running the Application
+
+### Option 1: Using start.bat (Windows)
+
+```bash
+start.bat
+```
+
+This opens two terminal windows:
+- Flask backend on port 5001
+- React frontend on port 5173
+
+### Option 2: Manual Start
+
+**Terminal 1 - Flask Backend:**
+```bash
+python api.py
+```
+
+**Terminal 2 - React Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+### Access the Application
+
+Open **http://localhost:5173** in your browser.
+
+### Alternative: Streamlit UI
 
 ```bash
 streamlit run ui.py
@@ -96,81 +153,178 @@ streamlit run ui.py
 
 ---
 
-## Example Queries
+## Usage
 
-```text
-Show all customers.
+1. **Database Connect** - Enter your MySQL credentials
+2. **API Configuration** - Add your Groq API key
+3. **Query Interface** - Type natural language questions
 
-List the top 10 highest priced products.
+### Example Queries
+
+```
+Show all employees in Engineering department.
+
+List the top 10 highest paid employees.
 
 How many orders were placed this month?
 
-Show total sales by category.
+Show total revenue by product category.
 
-Find customers who have not placed any orders.
+Find customers who haven't placed orders in 6 months.
 ```
 
 ---
 
-## Refactoring Improvements
+## API Endpoints
 
-The project was refactored to improve maintainability while preserving existing functionality.
-
-### Changes Made
-
-* Centralized database functionality in `db.py`
-* Shared schema generation logic across modules
-* Shared query execution logic across modules
-* Removed hardcoded credentials
-* Removed hardcoded API keys
-* Simplified project structure
-* Improved code reusability
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/connect-db` | Connect to MySQL |
+| POST | `/api/disconnect-db` | Disconnect from database |
+| GET | `/api/get-schema` | Get database schema |
+| POST | `/api/configure-api` | Configure Groq API |
+| POST | `/api/clear-api` | Clear API configuration |
+| POST | `/api/query` | Execute natural language query |
+| GET | `/api/history` | Get query history |
+| POST | `/api/clear-history` | Clear history |
+| GET | `/api/status` | Get connection status |
 
 ---
 
-## Technologies Used
+## Architecture
 
-* Python
-* Streamlit
-* MySQL
-* Groq API
+```
+┌─────────────────┐     HTTP      ┌─────────────────┐
+│   React Frontend │◄────────────►│   Flask Backend │
+│   (Port 5173)    │              │   (Port 5001)    │
+└─────────────────┘              └────────┬────────┘
+                                          │
+                           ┌──────────────┴──────────────┐
+                           ▼                             ▼
+                  ┌─────────────────┐          ┌─────────────────┐
+                  │   Groq LLM API  │          │   MySQL Database │
+                  │   (Query Gen)   │          │   (Data Store)   │
+                  └─────────────────┘          └─────────────────┘
+```
+
+---
+
+## Configuration
+
+### Default Values (Pre-filled in UI)
+
+| Setting | Default |
+|---------|---------|
+| Host | `localhost` |
+| Port | `3306` |
+| User | `root` |
+| Database | `company_db` |
+| Model | `openai/gpt-oss-120b` |
+
+### Environment Variables
+
+Create `.env` file (optional):
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=your_database
+GROQ_API_KEY=your_api_key
+```
 
 ---
 
 ## Security
 
-* Database credentials are entered at runtime.
-* Groq API keys are entered at runtime.
-* Sensitive information is not stored in the codebase.
+- All credentials entered at runtime (not stored)
+- API keys sent only to Groq API
+- Database passwords never logged
+- Session-scoped state (cleared on restart)
 
 ---
 
-## .gitignore
+## Development
 
-```gitignore
-__pycache__/
-*.pyc
+### Build for Production
 
-schema.txt
+```bash
+cd frontend
+npm run build
+```
 
-venv/
-.env
+### Run Linter
+
+```bash
+cd frontend
+npm run lint
+```
+
+### Preview Production Build
+
+```bash
+cd frontend
+npm run preview
+```
+
+---
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Check what's using port 5001
+netstat -ano | findstr :5001
+
+# Kill process (replace PID)
+taskkill /PID <pid> /F
+```
+
+### Module Not Found
+
+```bash
+pip install flask flask-cors mysql-connector-python groq pandas
+```
+
+### npm Install Fails
+
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Delete node_modules and reinstall
+rmdir /s /q node_modules
+del package-lock.json
+npm install
 ```
 
 ---
 
 ## Future Enhancements
 
-* PostgreSQL support
-* SQL Server support
-* SQLite support
-* Docker deployment
-* User authentication
-* SQL explanation mode
-* Multi-database management
+- [ ] PostgreSQL support
+- [ ] SQL Server support
+- [ ] SQLite support
+- [ ] Docker deployment
+- [ ] User authentication
+- [ ] Query explanation mode
+- [ ] Multi-database management
+- [ ] Query favorites/bookmarks
+- [ ] Query templates
+- [ ] Result visualization (charts)
 
 ---
 
 ## License
 
 This project is open-source and available for educational and development purposes.
+
+---
+
+## Credits
+
+- [Groq](https://groq.com) - Fast LLM inference
+- [React](https://react.dev) - UI framework
+- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
+- [Lucide](https://lucide.dev) - Beautiful icons
