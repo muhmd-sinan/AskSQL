@@ -3,12 +3,17 @@ from flask_cors import CORS
 import mysql.connector
 from groq import Groq
 from datetime import datetime
+import os
 import uuid
 import db
 import app as backend
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=[
+    "http://localhost:5173",
+    "https://dbmadeez.dev",
+    "https://www.dbmadeez.dev",
+])
 
 session_state = {
     'db_connected': False,
@@ -267,4 +272,5 @@ def get_status():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port)

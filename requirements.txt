@@ -4,3 +4,4 @@ pandas
 streamlit
 flask
 flask-cors
+gunicorn
