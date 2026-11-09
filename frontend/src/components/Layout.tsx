@@ -23,6 +23,28 @@ export function Layout({ children, currentPage, onNavigate, status, onShowHistor
     { id: 'query', label: 'Ask', disabled: !status.db_connected || !status.api_connected },
   ];
 
+  // Ask stays clickable while locked; clicking it explains what is missing.
+  const [toast, setToast] = useState<{ id: number; leaving: boolean } | null>(null);
+  const toastTimers = useRef<number[]>([]);
+  const clearToastTimers = () => { toastTimers.current.forEach(clearTimeout); toastTimers.current = []; };
+  const hideToast = () => {
+    clearToastTimers();
+    setToast(t => (t ? { ...t, leaving: true } : t));
+    toastTimers.current.push(window.setTimeout(() => setToast(null), 260));
+  };
+  const showToast = () => {
+    clearToastTimers();
+    setToast({ id: Date.now(), leaving: false });
+    toastTimers.current.push(window.setTimeout(hideToast, 5000));
+  };
+  useEffect(() => clearToastTimers, []);
+  useEffect(() => {
+    if (status.db_connected && status.api_connected && toast) hideToast();
+  }, [status.db_connected, status.api_connected]);
+
+  const missingDb = !status.db_connected;
+  const missingTarget = missingDb ? 'db' : 'api';
+
   const [scrolled, setScrolled] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -71,9 +93,9 @@ export function Layout({ children, currentPage, onNavigate, status, onShowHistor
                 key={item.id}
                 type="button"
                 ref={el => { if (el) btns.current.set(item.id, el); else btns.current.delete(item.id); }}
-                disabled={item.disabled}
+                aria-disabled={item.disabled || undefined}
                 aria-current={currentPage === item.id ? 'page' : undefined}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => (item.disabled ? showToast() : onNavigate(item.id))}
                 className="seg-btn"
               >
                 {item.label}
@@ -95,6 +117,29 @@ export function Layout({ children, currentPage, onNavigate, status, onShowHistor
       <main id="main" key={currentPage} className="page-enter mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6 sm:pt-14">
         {children}
       </main>
+
+      {toast && (
+        <div className="toast-wrap" role="status" aria-live="polite">
+          <div key={toast.id} className="toast" data-leaving={toast.leaving}>
+            <span className="toast-dot" aria-hidden />
+            <p className="toast-text">
+              {missingDb ? 'Connect a database first' : 'Add your API key first'}
+              <span className="toast-sub">
+                {missingDb ? 'Then you can ask your first question.' : 'One more step before you can ask.'}
+              </span>
+            </p>
+            <button
+              type="button"
+              className="toast-action"
+              onClick={() => { hideToast(); onNavigate(missingTarget); }}
+            >
+              {missingDb ? 'Connect' : 'Add key'}
+            </button>
+            <button type="button" className="toast-close" onClick={hideToast} aria-label="Dismiss">×</button>
+            <span className="toast-timer" aria-hidden />
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm text-ink-3 sm:px-6">
