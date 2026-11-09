@@ -42,6 +42,9 @@ def _new_state():
         'query_history': [],
         'is_demo': False,
         'demo_queries': 0,
+        'db_name': None,
+        # mysql-connector connections are not thread-safe; serialize use per session.
+        'lock': threading.RLock(),
         'last_seen': time.time(),
     }
 
@@ -151,6 +154,7 @@ def start_demo():
         'api_connected': True,
         'is_demo': True,
         'demo_queries': 0,
+        'db_name': cfg['database'],
     })
     return jsonify({
         'success': True,
@@ -193,6 +197,7 @@ def connect_db():
             'schema_text': schema_text,
             'schema_tables': schema_tables,
             'is_demo': False,
+            'db_name': database,
         })
 
         return jsonify({
@@ -226,6 +231,7 @@ def disconnect_db():
             'schema_text': '',
             'schema_tables': {},
             'is_demo': False,
+            'db_name': None,
         })
         return jsonify({'success': True, 'message': 'Disconnected successfully'})
     except Exception as e:
@@ -245,7 +251,8 @@ def get_schema():
         }), 400
 
     try:
-        schema_text, schema_tables = db.db_schema(state['conn'], write_file=False)
+        with state['lock']:
+            schema_text, schema_tables = db.db_schema(state['conn'], write_file=False)
         state.update({
             'schema_text': schema_text,
             'schema_tables': schema_tables
@@ -381,7 +388,8 @@ def execute_query():
             entry['sql'] = sql
 
             try:
-                result = db.execute_query(state['conn'], sql, write_file=False)
+                with state['lock']:
+                    result = db.execute_query(state['conn'], sql, write_file=False)
                 state['schema_text'] = result['schema_text']
                 state['schema_tables'] = result['schema_tables']
 
@@ -438,7 +446,7 @@ def get_status():
         'success': True,
         'db_connected': state['db_connected'],
         'api_connected': state['api_connected'],
-        'db_name': state['conn'].database if state['db_connected'] and state['conn'] else None,
+        'db_name': state['db_name'] if state['db_connected'] else None,
         'model': state['model'],
         'is_demo': state['is_demo'],
         'demo_available': demo_config() is not None,

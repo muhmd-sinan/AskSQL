@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { Database, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { GlassCard } from '../components/GlassCard';
+import { useEffect, useState } from 'react';
+import { ArrowRight, CircleNotch, WarningCircle } from '@phosphor-icons/react';
 import { SchemaGrid } from '../components/SchemaGrid';
+import { HeroDemo } from '../components/HeroDemo';
+import { Reveal } from '../components/Reveal';
+import { Disclosure } from '../components/Disclosure';
 import { api } from '../services/api';
 
 interface DatabaseConnectProps {
   onConnect: () => void;
+  onDemoStarted: () => Promise<void>;
+  onAsk: () => void;
   status: {
     db_connected: boolean;
     db_name?: string;
@@ -17,26 +21,47 @@ interface DatabaseConnectProps {
   schema_tables: Record<string, Array<{ name: string; type: string; tag: string }>>;
 }
 
-export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseConnectProps) {
-  const [formData, setFormData] = useState({
-    host: 'localhost',
-    port: '3306',
-    user: 'root',
-    password: '',
-    database: 'company_db',
-  });
-  const [loading, setLoading] = useState(false);
+const STEPS = [
+  { title: 'Reads your schema', body: 'Table and column names, types, and keys are sent along with your question.' },
+  { title: 'Writes one statement', body: 'The model returns a single MySQL query, or asks you to clarify when the question is vague.' },
+  { title: 'Runs it and shows the rows', body: 'You see the SQL, the result table, and can export it as CSV.' },
+];
+
+export function DatabaseConnect({ onConnect, onDemoStarted, onAsk, status, schema_tables }: DatabaseConnectProps) {
+  const [formData, setFormData] = useState({ host: 'localhost', port: '3306', user: 'root', password: '', database: 'company_db' });
+  const [loading, setLoading] = useState<'demo' | 'custom' | 'off' | null>(null);
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // The free server sleeps when idle. Say so if connecting takes a while.
+  useEffect(() => {
+    if (loading !== 'demo') { setSlow(false); return; }
+    const t = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  const customAllowed = status.custom_db_allowed ?? true;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handleStartDemo = async () => {
+    setLoading('demo');
+    setError(null);
+    try {
+      await api.startDemo();
+      await onDemoStarted();
+    } catch (err: any) {
+      setError(err.message || 'Could not start the demo. Try again in a moment.');
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading('custom');
     setError(null);
-
     try {
       const result = await api.connectDB({
         host: formData.host,
@@ -45,213 +70,170 @@ export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseCo
         password: formData.password,
         database: formData.database,
       });
-
-      if (result.success) {
-        onConnect();
-      } else {
-        setError(result.error || 'Connection failed');
-      }
+      if (result.success) onConnect();
+      else setError(result.error || 'Connection failed. Check the details and try again.');
     } catch (err: any) {
-      setError(err.message || 'Connection failed');
+      setError(err.message || 'Connection failed. Check the details and try again.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStartDemo = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await api.startDemo();
-      onConnect();
-    } catch (err: any) {
-      setError(err.message || 'Could not start demo');
-    } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
   const handleDisconnect = async () => {
-    setLoading(true);
+    setLoading('off');
     try {
       await api.disconnectDB();
       onConnect();
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
+  const field = (name: keyof typeof formData, label: string, type = 'text') => (
+    <div>
+      <label htmlFor={`db-${name}`} className="label">{label}</label>
+      <input
+        id={`db-${name}`}
+        name={name}
+        type={type}
+        value={formData[name]}
+        onChange={handleChange}
+        disabled={loading !== null || status.db_connected}
+        autoComplete={type === 'password' ? 'current-password' : 'off'}
+        className="field"
+      />
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-slate-100">
-          Database Connection
-        </h1>
-        <p className="text-slate-400">
-          Connect to your MySQL database to get started
-        </p>
-      </div>
-
-      {status.db_connected && (
-        <div className="mb-6 p-4 rounded-xl flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30">
-          <CheckCircle className="w-5 h-5 text-emerald-500" />
-          <p className="text-emerald-400">
-            Connected to <strong>{status.db_name}</strong>
+    <div>
+      {/* Hero */}
+      <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+        <div className="lg:pb-6">
+          <h1 className="display rise" style={{ ['--i' as string]: 0 }}>
+            Ask your database. In plain English.
+          </h1>
+          <p className="lead rise mt-6 max-w-[38ch]" style={{ ['--i' as string]: 1 }}>
+            Type a question. AskSQL writes the MySQL, runs it, and shows you the rows.
           </p>
-        </div>
-      )}
 
-      {status.is_demo && (
-        <div className="mb-6 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-sm">
-          Demo mode: shared sample database.
-          {typeof status.demo_remaining === 'number' && ` ${status.demo_remaining} questions left in this session.`}
-        </div>
-      )}
-
-      {!status.db_connected && status.demo_available && (
-        <GlassCard className="mb-6">
-          <h3 className="text-lg font-semibold mb-2 text-slate-100">Try the demo</h3>
-          <p className="text-sm text-slate-400 mb-4">
-            One click connects you to a hosted MySQL sample database (employees, customers, products,
-            orders). No account or API key needed.
-          </p>
-          <button
-            type="button"
-            onClick={handleStartDemo}
-            disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 bg-emerald-500 hover:bg-emerald-600 text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-            Start demo
-          </button>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-        </GlassCard>
-      )}
-
-      {(status.custom_db_allowed ?? true) && (
-      <GlassCard className="mb-8">
-        <form onSubmit={handleConnect}>
-          <h3 className="text-lg font-semibold mb-4 text-slate-100">
-            Connection Details
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-300">
-                Host
-              </label>
-              <input
-                type="text"
-                name="host"
-                value={formData.host}
-                onChange={handleChange}
-                disabled={loading || status.db_connected}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-300">
-                Port
-              </label>
-              <input
-                type="text"
-                name="port"
-                value={formData.port}
-                onChange={handleChange}
-                disabled={loading || status.db_connected}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-300">
-                Username
-              </label>
-              <input
-                type="text"
-                name="user"
-                value={formData.user}
-                onChange={handleChange}
-                disabled={loading || status.db_connected}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-300">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading || status.db_connected}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2 text-slate-300">
-                Database Name
-              </label>
-              <input
-                type="text"
-                name="database"
-                value={formData.database}
-                onChange={handleChange}
-                disabled={loading || status.db_connected}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50 disabled:opacity-50"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-500/10 border border-red-500/30">
-              <XCircle className="w-4 h-4 text-red-500" />
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {!status.db_connected ? (
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 bg-sky-500 hover:bg-sky-600 text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <Database className="w-4 h-4" />
-                    Connect
-                  </>
+          <div className="rise mt-9 flex flex-wrap items-center gap-x-4 gap-y-2" style={{ ['--i' as string]: 2 }}>
+            {status.db_connected ? (
+              <>
+                <button type="button" className="btn btn-primary" onClick={onAsk}>
+                  Ask a question <ArrowRight size={18} weight="bold" aria-hidden />
+                </button>
+                <button type="button" className="btn-link" onClick={handleDisconnect} disabled={loading !== null}>
+                  {loading === 'off' ? 'Disconnecting' : 'Disconnect'}
+                </button>
+              </>
+            ) : status.demo_available ? (
+              <>
+                <button type="button" className="btn btn-primary" onClick={handleStartDemo} disabled={loading !== null}>
+                  {loading === 'demo' ? (
+                    <><CircleNotch size={18} weight="bold" className="spin" aria-hidden /> Connecting</>
+                  ) : (
+                    <>Try the demo <ArrowRight size={18} weight="bold" aria-hidden /></>
+                  )}
+                </button>
+                {customAllowed && (
+                  <a className="btn-link" href="#own-database">Use your own database</a>
                 )}
-              </button>
+              </>
+            ) : customAllowed ? (
+              <a className="btn btn-primary" href="#own-database">Connect a database</a>
             ) : (
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={loading}
-                className="px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Disconnect'}
-              </button>
+              <p className="text-ink-2">The demo is unavailable right now. Please check back soon.</p>
             )}
           </div>
-        </form>
-      </GlassCard>
+
+          <div aria-live="polite" className="mt-5 min-h-[3.5rem] max-w-[46ch]">
+            {slow && loading === 'demo' && (
+              <p className="text-sm text-ink-2">
+                Waking the server. The first start after a quiet spell can take up to a minute.
+              </p>
+            )}
+            {error && !customAllowed && (
+              <div className="notice notice-danger" role="alert">
+                <WarningCircle size={22} weight="fill" className="mt-0.5 shrink-0" aria-hidden />
+                <p>{error}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rise" style={{ ['--i' as string]: 3 }}>
+          <HeroDemo />
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="mt-28 grid gap-10 border-t border-line pt-16 lg:grid-cols-[1fr_1.4fr] lg:gap-20 sm:mt-40">
+        <Reveal>
+          <h2 className="title lg:sticky lg:top-24">What happens when you ask.</h2>
+        </Reveal>
+        <ol className="space-y-12">
+          {STEPS.map((s, i) => (
+            <Reveal as="li" key={s.title} index={i}>
+              <h3 className="text-2xl font-semibold tracking-tight">{s.title}</h3>
+              <p className="lead mt-2 max-w-[44ch]">{s.body}</p>
+            </Reveal>
+          ))}
+        </ol>
+      </section>
+
+      {/* Schema, once connected */}
+      {status.db_connected && Object.keys(schema_tables).length > 0 && (
+        <section className="mt-28 sm:mt-40">
+          <Reveal>
+            <h2 className="title">
+              What is inside {status.db_name ?? 'the database'}.
+            </h2>
+          </Reveal>
+          <Reveal className="mt-8" index={1}>
+            <SchemaGrid schema_tables={schema_tables} />
+          </Reveal>
+        </section>
       )}
 
-      {status.db_connected && Object.keys(schema_tables).length > 0 && (
-        <SchemaGrid schema_tables={schema_tables} />
+      {/* Own database */}
+      {customAllowed && (
+        <section id="own-database" className="mt-28 sm:mt-40">
+          <Reveal>
+            <div className="border-y border-line">
+              <Disclosure title="Connect your own MySQL database" defaultOpen={!status.demo_available}>
+                <form onSubmit={handleConnect} className="pb-8">
+                  <p className="mb-6 max-w-[52ch] text-ink-2">
+                    Your credentials are used to open one connection for this session. They are not saved.
+                  </p>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    {field('host', 'Host')}
+                    {field('port', 'Port')}
+                    {field('user', 'Username')}
+                    {field('password', 'Password', 'password')}
+                    <div className="sm:col-span-2">{field('database', 'Database name')}</div>
+                  </div>
+
+                  {error && (
+                    <div className="notice notice-danger mt-5" role="alert">
+                      <WarningCircle size={22} weight="fill" className="mt-0.5 shrink-0" aria-hidden />
+                      <p>{error}</p>
+                    </div>
+                  )}
+
+                  {!status.db_connected && (
+                    <button type="submit" disabled={loading !== null} className="btn btn-primary mt-7">
+                      {loading === 'custom' && <CircleNotch size={18} weight="bold" className="spin" aria-hidden />}
+                      {loading === 'custom' ? 'Connecting' : 'Connect'}
+                    </button>
+                  )}
+                </form>
+              </Disclosure>
+            </div>
+          </Reveal>
+        </section>
       )}
     </div>
   );

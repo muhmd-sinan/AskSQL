@@ -1,67 +1,69 @@
-import { useState } from 'react';
-import { Play, Loader2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ArrowUp, CircleNotch } from '@phosphor-icons/react';
 
 interface QueryInputProps {
   onExecute: (question: string) => void;
   loading?: boolean;
+  suggestions?: string[];
 }
 
-export function QueryInput({ onExecute, loading }: QueryInputProps) {
+export function QueryInput({ onExecute, loading, suggestions = [] }: QueryInputProps) {
   const [question, setQuestion] = useState('');
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const canSend = question.trim().length > 0 && !loading;
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const submit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (question.trim() && !loading) {
-      onExecute(question.trim());
+    if (canSend) onExecute(question.trim());
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      submit();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const pick = (text: string) => {
+    setQuestion(text);
+    ref.current?.focus();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <textarea
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="e.g. Show all employees in Engineering sorted by salary descending"
-        disabled={loading}
-        className="w-full h-32 px-4 py-3 rounded-xl resize-none font-sans text-base bg-slate-900/50 border border-slate-700/50 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 disabled:opacity-50 disabled:cursor-not-allowed scrollbar-thin"
-      />
-
-      <div className="flex gap-3">
+    <form onSubmit={submit}>
+      <label htmlFor="question" className="sr-only">Your question</label>
+      <div className="surface relative p-2 transition-shadow focus-within:shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_22%,transparent)]">
+        <textarea
+          id="question"
+          ref={ref}
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Show all employees in Engineering, highest salary first"
+          disabled={loading}
+          rows={3}
+          className="block w-full resize-none rounded-[20px] bg-transparent px-4 py-3 pr-16 text-lg leading-snug outline-none placeholder:text-ink-3 disabled:opacity-60"
+        />
         <button
           type="submit"
-          disabled={!question.trim() || loading}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 bg-sky-500 hover:bg-sky-600 text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!canSend}
+          aria-label={loading ? 'Running your question' : 'Run question'}
+          className="btn btn-primary absolute bottom-4 right-4 !min-h-11 !w-11 !p-0"
         >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4" />
-              Run Query
-            </>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setQuestion('')}
-          disabled={loading}
-          className="px-6 py-2.5 rounded-xl glass-button text-slate-300"
-        >
-          Clear
+          {loading ? <CircleNotch size={20} weight="bold" className="spin" /> : <ArrowUp size={20} weight="bold" />}
         </button>
       </div>
+      <p className="hint px-2">Press Enter to run. Shift and Enter adds a new line.</p>
+
+      {suggestions.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Example questions">
+          {suggestions.map(s => (
+            <button key={s} type="button" className="chip" disabled={loading} onClick={() => pick(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </form>
   );
 }

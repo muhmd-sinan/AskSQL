@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
-import { HistoryModal } from './components/HistoryModal';
+import { HistoryDrawer } from './components/HistoryDrawer';
 import { DatabaseConnect } from './pages/DatabaseConnect';
 import { APIConfig } from './pages/APIConfig';
 import { QueryInterface } from './pages/QueryInterface';
@@ -111,6 +111,13 @@ function App() {
     fetchHistory();
   };
 
+  // After the demo starts, wait for fresh status so the Ask page never flashes "connect first".
+  const handleDemoStarted = async () => {
+    await Promise.all([fetchStatus(), fetchHistory()]);
+    setCurrentPage('query');
+    window.scrollTo({ top: 0 });
+  };
+
   return (
     <>
       <Layout
@@ -122,6 +129,8 @@ function App() {
         {currentPage === 'db' && (
           <DatabaseConnect
             onConnect={handleQueryExecuted}
+            onDemoStarted={handleDemoStarted}
+            onAsk={() => handleNavigate('query')}
             status={{
               db_connected: status.db_connected,
               db_name: status.db_name,
@@ -144,12 +153,13 @@ function App() {
             status={status}
             schema_tables={schemaTables}
             onQueryExecuted={handleQueryExecuted}
+            onNavigate={handleNavigate}
             selectedEntry={selectedEntry}
           />
         )}
       </Layout>
 
-      <HistoryModal
+      <HistoryDrawer
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
         history={history}
