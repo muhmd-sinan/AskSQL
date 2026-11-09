@@ -13,8 +13,9 @@ services:
       # Set these in the Render dashboard (sync: false keeps them out of git).
       - key: DEMO_DB_HOST
         sync: false
+      # TiDB Cloud uses 4000 (plain MySQL uses 3306).
       - key: DEMO_DB_PORT
-        value: "3306"
+        value: "4000"
       - key: DEMO_DB_USER
         sync: false
       - key: DEMO_DB_PASSWORD
@@ -23,7 +24,7 @@ services:
         value: company_db
       - key: DEMO_GROQ_API_KEY
         sync: false
-      # Your static site URL, e.g. https://asksql.onrender.com
+      # Static site URL(s), comma separated, e.g. https://asksql2.onrender.com
       - key: ALLOWED_ORIGINS
         sync: false
       # Public site: visitors can only use the demo database.
@@ -32,7 +33,7 @@ services:
 
   # React frontend
   - type: web
-    name: asksql
+    name: asksql2
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
