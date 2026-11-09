@@ -15,6 +15,10 @@ function App() {
     api_connected: false,
     db_name: undefined as string | undefined,
     model: undefined as string | undefined,
+    is_demo: false,
+    demo_available: false,
+    custom_db_allowed: true,
+    demo_remaining: null as number | null,
   });
   const [schemaTables, setSchemaTables] = useState<Record<string, Array<{ name: string; type: string; tag: string }>>>({});
   const [history, setHistory] = useState<QueryHistoryEntry[]>([]);
@@ -30,6 +34,10 @@ function App() {
           api_connected: result.api_connected,
           db_name: result.db_name,
           model: result.model,
+          is_demo: !!result.is_demo,
+          demo_available: !!result.demo_available,
+          custom_db_allowed: result.custom_db_allowed ?? true,
+          demo_remaining: result.demo_remaining ?? null,
         });
       }
     } catch (err) {
@@ -114,7 +122,14 @@ function App() {
         {currentPage === 'db' && (
           <DatabaseConnect
             onConnect={handleQueryExecuted}
-            status={{ db_connected: status.db_connected, db_name: status.db_name }}
+            status={{
+              db_connected: status.db_connected,
+              db_name: status.db_name,
+              is_demo: status.is_demo,
+              demo_available: status.demo_available,
+              custom_db_allowed: status.custom_db_allowed,
+              demo_remaining: status.demo_remaining,
+            }}
             schema_tables={schemaTables}
           />
         )}

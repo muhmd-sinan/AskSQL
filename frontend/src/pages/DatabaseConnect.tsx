@@ -9,6 +9,10 @@ interface DatabaseConnectProps {
   status: {
     db_connected: boolean;
     db_name?: string;
+    is_demo?: boolean;
+    demo_available?: boolean;
+    custom_db_allowed?: boolean;
+    demo_remaining?: number | null;
   };
   schema_tables: Record<string, Array<{ name: string; type: string; tag: string }>>;
 }
@@ -18,7 +22,7 @@ export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseCo
     host: 'localhost',
     port: '3306',
     user: 'root',
-    password: '1234',
+    password: '',
     database: 'company_db',
   });
   const [loading, setLoading] = useState(false);
@@ -49,6 +53,19 @@ export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseCo
       }
     } catch (err: any) {
       setError(err.message || 'Connection failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartDemo = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.startDemo();
+      onConnect();
+    } catch (err: any) {
+      setError(err.message || 'Could not start demo');
     } finally {
       setLoading(false);
     }
@@ -86,6 +103,34 @@ export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseCo
         </div>
       )}
 
+      {status.is_demo && (
+        <div className="mb-6 p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-sm">
+          Demo mode: shared sample database.
+          {typeof status.demo_remaining === 'number' && ` ${status.demo_remaining} questions left in this session.`}
+        </div>
+      )}
+
+      {!status.db_connected && status.demo_available && (
+        <GlassCard className="mb-6">
+          <h3 className="text-lg font-semibold mb-2 text-slate-100">Try the demo</h3>
+          <p className="text-sm text-slate-400 mb-4">
+            One click connects you to a hosted MySQL sample database (employees, customers, products,
+            orders). No account or API key needed.
+          </p>
+          <button
+            type="button"
+            onClick={handleStartDemo}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-200 bg-emerald-500 hover:bg-emerald-600 text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            Start demo
+          </button>
+          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        </GlassCard>
+      )}
+
+      {(status.custom_db_allowed ?? true) && (
       <GlassCard className="mb-8">
         <form onSubmit={handleConnect}>
           <h3 className="text-lg font-semibold mb-4 text-slate-100">
@@ -203,6 +248,7 @@ export function DatabaseConnect({ onConnect, status, schema_tables }: DatabaseCo
           </div>
         </form>
       </GlassCard>
+      )}
 
       {status.db_connected && Object.keys(schema_tables).length > 0 && (
         <SchemaGrid schema_tables={schema_tables} />

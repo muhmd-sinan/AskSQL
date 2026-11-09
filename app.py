@@ -3,8 +3,9 @@ from pathlib import Path
 from db import execute_query
 
 
-def create_query(statement, schema_path="schema.txt", api_key=""):
-    schema = Path(schema_path).read_text(encoding="utf-8")
+def create_query(statement, schema_path="schema.txt", api_key="", schema_text=None):
+    # The web API passes schema_text per visitor; the CLI falls back to schema.txt.
+    schema = schema_text if schema_text is not None else Path(schema_path).read_text(encoding="utf-8")
 
     prompt = f"Database Schema:\n{schema}\n\nStatement: {statement}\n\nGenerate the MySQL query:"
 

@@ -2,7 +2,7 @@ import mysql.connector
 from pathlib import Path
 
 
-def db_schema(conn):
+def db_schema(conn, write_file=True):
     """
     Returns (schema_text, schema_tables).
     schema_text  — plain string written to schema.txt, used in LLM prompts.
@@ -49,14 +49,15 @@ def db_schema(conn):
         schema_text += ", ".join(column_entries) + "\n"
         schema_tables[table] = table_cols
 
-    Path("schema.txt").write_text(schema_text, encoding="utf-8")
-    print("Schema refreshed and saved to schema.txt")
+    if write_file:
+        Path("schema.txt").write_text(schema_text, encoding="utf-8")
+        print("Schema refreshed and saved to schema.txt")
 
     cursor.close()
     return schema_text, schema_tables
 
 
-def execute_query(conn, query):
+def execute_query(conn, query, write_file=True):
     cursor = conn.cursor()
     cursor.execute(query)
 
@@ -69,7 +70,7 @@ def execute_query(conn, query):
         results = []
 
     conn.commit()
-    schema_text, schema_tables = db_schema(conn)
+    schema_text, schema_tables = db_schema(conn, write_file)
 
     if cursor.with_rows:
         message = f"Query executed successfully. {len(results)} row(s) returned."

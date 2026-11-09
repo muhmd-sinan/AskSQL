@@ -1,10 +1,43 @@
 services:
+  # Flask API
   - type: web
-    name: asksql
+    name: asksql-api
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn api:app -b 0.0.0.0:$PORT --workers 1 --timeout 120
+    # Sessions live in process memory, so keep ONE worker and use threads for concurrency.
+    startCommand: gunicorn api:app -b 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      # Set these in the Render dashboard (sync: false keeps them out of git).
+      - key: DEMO_DB_HOST
+        sync: false
+      - key: DEMO_DB_PORT
+        value: "3306"
+      - key: DEMO_DB_USER
+        sync: false
+      - key: DEMO_DB_PASSWORD
+        sync: false
+      - key: DEMO_DB_NAME
+        value: company_db
+      - key: DEMO_GROQ_API_KEY
+        sync: false
+      # Your static site URL, e.g. https://asksql.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Public site: visitors can only use the demo database.
+      - key: ALLOW_CUSTOM_DB
+        value: "false"
+
+  # React frontend
+  - type: web
+    name: asksql
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Your API URL + /api, e.g. https://asksql-api.onrender.com/api
+      - key: VITE_API_URL
+        sync: false
